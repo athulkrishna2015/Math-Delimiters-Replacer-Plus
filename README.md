@@ -2,6 +2,7 @@
 [Install via ankiweb](https://ankiweb.net/shared/info/699086701)
 
 This add-on converts MathJax delimiters while editing notes and when batch-updating selected cards in the Browser, using the same matching logic as the original project it builds on 
+(Supports Bulk update)
 
 ## What it does 
 - Replace display math: `$$ … $$` → `\[ … \]` without altering the inner TeX content 
@@ -9,6 +10,7 @@ This add-on converts MathJax delimiters while editing notes and when batch-updat
 - Adds a toolbar button labelled `\(...\)` in the Editor for one‑click conversion of the current selection  
 - Adds a Browser action named `\(...\)` that processes all fields of all selected notes, with a single undo group for Ctrl+Z  
 
+![giphy](https://github.com/user-attachments/assets/68712ef8-ad94-4503-b8d2-8f6c384fbcb8)
 
 
 ## Installation 
