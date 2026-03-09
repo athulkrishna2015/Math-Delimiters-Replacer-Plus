@@ -11,6 +11,16 @@ from anki.hooks import addHook
 from aqt.editor import Editor
 import re
 
+from .config_dialog import on_config
+mw.addonManager.setConfigAction(__name__, on_config)
+
+def setup_tools_menu():
+    action = QAction("Math Delimiters Replacer Config...", mw)
+    action.triggered.connect(on_config)
+    mw.form.menuTools.addAction(action)
+
+setup_tools_menu()
+
 # Try modern hooks (present in Anki 25)
 try:
     from aqt import gui_hooks
