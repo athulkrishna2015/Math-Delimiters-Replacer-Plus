@@ -244,6 +244,54 @@ def replace_in_browser(browser):
             pass
     tooltip(f"Replaced math delimiters in {changed} notes.")
 
+def _refresh_reviewer_card(reviewer):
+    try:
+        if reviewer.card:
+            reviewer.card.load()
+    except Exception:
+        pass
+
+    try:
+        if getattr(reviewer, "state", None) == "answer":
+            reviewer._showAnswer()
+        else:
+            reviewer._showQuestion()
+        return
+    except Exception:
+        pass
+
+    try:
+        mw.reset()
+    except Exception:
+        pass
+
+def replace_in_reviewer(reviewer):
+    card = getattr(reviewer, "card", None)
+    if not card:
+        tooltip("No active review card.")
+        return
+
+    undo_kind = _start_undo()
+    changed = False
+    try:
+        note = _get_note(card.nid)
+        for fld in note.keys():
+            orig = note[fld]
+            new = _convert_text(orig)
+            if new != orig:
+                note[fld] = new
+                changed = True
+        if changed:
+            _save_note(note)
+    finally:
+        _stop_undo(undo_kind)
+
+    if changed:
+        _refresh_reviewer_card(reviewer)
+        tooltip("Replaced math delimiters in the current note.")
+    else:
+        tooltip("No math delimiters found in the current note.")
+
 def _set_widget_with_children_context(act: QAction):
     # PyQt6: use enum class; PyQt5: legacy attribute
     try:
@@ -271,7 +319,15 @@ def _add_browser_action(browser):
         except Exception:
             browser.addAction(act)
 
+def _add_reviewer_action(reviewer, menu):
+    act = QAction(r"\(...\)", menu)
+    act.setToolTip("Replace Math Delimiters in the current review note")
+    act.triggered.connect(lambda _checked=False, r=reviewer: replace_in_reviewer(r))
+    menu.addAction(act)
+
 if HAS_GUI_HOOKS:
     gui_hooks.browser_menus_did_init.append(_add_browser_action)
+    if hasattr(gui_hooks, "reviewer_will_show_context_menu"):
+        gui_hooks.reviewer_will_show_context_menu.append(_add_reviewer_action)
 else:
     addHook("browser.setupMenus", _add_browser_action)
