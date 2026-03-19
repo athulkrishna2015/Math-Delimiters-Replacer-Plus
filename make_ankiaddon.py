@@ -10,6 +10,16 @@ from new_version import sync_version
 ADDON_NAME = "Review_Hotmouse_Plus_Overview"
 ADDON_DIR = "addon"
 
+def artifact_names(
+    addon_name: str,
+    version: str,
+    when: datetime | None = None,
+) -> tuple[str, str]:
+    dt = when or datetime.today()
+    timestamp = dt.strftime("%Y%m%d%H%M")
+    base = f"{addon_name}_v{version}_{timestamp}"
+    return f"{base}.zip", f"{base}.ankiaddon"
+
 def bump_version():
     try:
         addon_path = Path(ADDON_DIR)
@@ -32,9 +42,13 @@ def create_ankiaddon():
         print(f"Error: {ADDON_DIR} directory not found.")
         return
 
-    today = datetime.today().strftime('%Y%m%d%H%M')
-    zip_name = f'{ADDON_NAME}_{today}.zip'
-    final_name = f'{ADDON_NAME}_{today}.ankiaddon'
+    try:
+        current_version = read_current_version(addon_path)
+    except Exception as e:
+        print(f"Error: Could not determine current version: {e}")
+        return
+
+    zip_name, final_name = artifact_names(ADDON_NAME, current_version)
 
     # Exclusions
     exclude_dirs = ['__pycache__', '.git', '.vscode', '.github', 'tests']

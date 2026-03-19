@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Math Delimiters Replacer
-- replace $$...$$ -> \[...\] and $...$ -> \(...\)
+- replace $$...$$ -> \\[...\\] and $...$ -> \\(...\\)
 (Anki 25 / Qt6 compatible; regex lines UNCHANGED)
 """
 from aqt import mw
@@ -9,9 +9,9 @@ from aqt.qt import *
 from aqt.utils import tooltip
 from anki.hooks import addHook
 from aqt.editor import Editor
-import re
 
 from .config_dialog import on_config
+from .conversion import convert_text
 mw.addonManager.setConfigAction(__name__, on_config)
 
 def setup_tools_menu():
@@ -38,9 +38,7 @@ def format_key(k):
 
 # ----- regex logic (UNCHANGED) -----
 def _convert_text(txt: str) -> str:
-    out = re.sub(r"\$\$([\s\S]*?)\$\$", r"\\[\1\\]", txt, flags=re.DOTALL)
-    out = re.sub(r"\$([\s\S]*?)\$", r"\\(\1\\)", out, flags=re.DOTALL)
-    return out
+    return convert_text(txt)
 
 # ----- editor: replace current selection via toolbar button/hotkey -----
 def replaceMathDelimiters(editor: Editor):
@@ -77,6 +75,49 @@ def replaceMathDelimiters(editor: Editor):
       end = range.endOffset;
     }
     return { start, end };
+  }
+
+  function rewriteRangeViaInsertHTML(sel, range) {
+    let fragment;
+    try {
+      fragment = range.cloneContents();
+    } catch (e) {
+      return null;
+    }
+
+    const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT, null);
+    let changed = false;
+    let n;
+    while ((n = walker.nextNode())) {
+      if (shouldSkipTextNode(n)) continue;
+      const text = n.nodeValue || "";
+      const updated = convertDelimiters(text);
+      if (updated !== text) {
+        n.nodeValue = updated;
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      return false;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.appendChild(fragment);
+    const html = wrapper.innerHTML;
+
+    try {
+      sel.removeAllRanges();
+      sel.addRange(range);
+      if (document.execCommand) {
+        const ok = document.execCommand("insertHTML", false, html);
+        if (ok) {
+          return true;
+        }
+      }
+    } catch (e) {}
+
+    return null;
   }
 
   function rewriteSelectionInPlace(range) {
@@ -144,7 +185,15 @@ def replaceMathDelimiters(editor: Editor):
     }
   }
 
-  const changed = rewriteSelectionInPlace(range);
+  const viaInsertHtml = rewriteRangeViaInsertHTML(sel, range);
+  let changed = false;
+  if (viaInsertHtml === true) {
+    changed = true;
+  } else if (viaInsertHtml === false) {
+    return;
+  } else {
+    changed = rewriteSelectionInPlace(range);
+  }
   if (!changed) return;
 
   try {
@@ -185,17 +234,37 @@ def _editor_shortcuts(shortcuts, editor):
 if HAS_GUI_HOOKS:
     gui_hooks.editor_did_init_shortcuts.append(_editor_shortcuts)
 
-# ----- browser: batch process selected notes with undo -----
+# ----- browser/reviewer: process notes with undo -----
 def _start_undo():
+    # Modern Anki (25+): create a custom undo entry and merge note updates into it.
+    try:
+        token = mw.col.add_custom_undo_entry("Replace Math Delimiters")
+        return ("modern", token)
+    except Exception:
+        pass
+
+    # Older Anki: legacy grouped undo APIs.
     try:
         mw.col.start_undo()
-        return "new"
+        return ("legacy", None)
     except Exception:
-        mw.checkpoint("Replace Math Delimiters")
-        return "old"
+        pass
 
-def _stop_undo(kind):
-    if kind == "new":
+    # Very old fallback (deprecated/no-op on modern Anki, but harmless).
+    try:
+        mw.checkpoint("Replace Math Delimiters")
+    except Exception:
+        pass
+    return ("checkpoint", None)
+
+def _stop_undo(ctx):
+    kind, token = ctx
+    if kind == "modern":
+        try:
+            mw.col.merge_undo_entries(token)
+        except Exception:
+            pass
+    elif kind == "legacy":
         try:
             mw.col.stop_undo("Replace Math Delimiters")
         except Exception:
@@ -208,18 +277,33 @@ def _get_note(nid):
         return mw.col.getNote(nid)   # older API
 
 def _save_note(note):
-    for fn in (getattr(note, "flush", None),
-               getattr(mw.col, "update_note", None),
-               getattr(note, "save", None)):
+    update_note = getattr(mw.col, "update_note", None)
+    if update_note:
         try:
-            if fn:
-                fn(note) if fn is getattr(mw.col, "update_note", None) else fn()
-                return
+            update_note(note)
+            return
         except Exception:
-            continue
+            pass
+
+    # Legacy fallback. Note.flush() skips undo entries on modern Anki,
+    # so it is intentionally not the primary path.
+    flush = getattr(note, "flush", None)
+    if flush:
+        try:
+            flush()
+            return
+        except Exception:
+            pass
+
+    save = getattr(note, "save", None)
+    if save:
+        try:
+            save()
+        except Exception:
+            pass
 
 def replace_in_browser(browser):
-    undo_kind = _start_undo()
+    undo_ctx = None
     nids = browser.selectedNotes()
     changed = 0
     for nid in nids:
@@ -232,9 +316,12 @@ def replace_in_browser(browser):
                 note[fld] = new
                 touched = True
         if touched:
+            if undo_ctx is None:
+                undo_ctx = _start_undo()
             _save_note(note)
             changed += 1
-    _stop_undo(undo_kind)
+    if undo_ctx is not None:
+        _stop_undo(undo_ctx)
     try:
         browser.model.reset()
     except Exception:
@@ -271,7 +358,7 @@ def replace_in_reviewer(reviewer):
         tooltip("No active review card.")
         return
 
-    undo_kind = _start_undo()
+    undo_ctx = None
     changed = False
     try:
         note = _get_note(card.nid)
@@ -282,9 +369,11 @@ def replace_in_reviewer(reviewer):
                 note[fld] = new
                 changed = True
         if changed:
+            undo_ctx = _start_undo()
             _save_note(note)
     finally:
-        _stop_undo(undo_kind)
+        if undo_ctx is not None:
+            _stop_undo(undo_ctx)
 
     if changed:
         _refresh_reviewer_card(reviewer)

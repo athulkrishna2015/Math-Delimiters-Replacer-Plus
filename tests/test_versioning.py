@@ -2,6 +2,7 @@ import json
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -92,6 +93,12 @@ class VersioningTests(unittest.TestCase):
             manifest = json.loads((addon_dir / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["version"], "9.1.3")
             self.assertEqual((addon_dir / "VERSION").read_text(encoding="utf-8").strip(), "9.1.3")
+
+    def test_artifact_name_includes_version(self) -> None:
+        when = datetime(2026, 3, 19, 12, 30)
+        zip_name, addon_name = make_ankiaddon.artifact_names("MyAddon", "1.4.0", when)
+        self.assertEqual(zip_name, "MyAddon_v1.4.0_202603191230.zip")
+        self.assertEqual(addon_name, "MyAddon_v1.4.0_202603191230.ankiaddon")
 
 
 if __name__ == "__main__":

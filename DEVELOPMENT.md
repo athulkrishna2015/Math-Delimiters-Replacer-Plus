@@ -20,6 +20,12 @@ This repository contains the source for the **Math Delimiters Replacer Plus** An
 - Browser Edit menu action: batch-convert selected notes.
 - Reviewer More menu action: convert delimiters in the current review note.
 
+## Undo Behavior
+
+- Browser and Reviewer actions use grouped undo on modern Anki (`add_custom_undo_entry` + `merge_undo_entries`).
+- Editor replacement integrates with the editor field undo stack, so `Ctrl+Z` in the editor restores previous delimiters.
+- Legacy undo/checkpoint paths are retained only as compatibility fallbacks for older Anki APIs.
+
 ## Versioning Scheme
 
 Version format is strictly:
@@ -56,6 +62,12 @@ Build `.ankiaddon` locally:
 
 ```shell
 python make_ankiaddon.py
+```
+
+Output naming format:
+
+```text
+<ADDON_NAME>_v<major.minor.patch>_<YYYYMMDDHHMM>.ankiaddon
 ```
 
 Run tests:

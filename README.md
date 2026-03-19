@@ -1,7 +1,7 @@
 # [Math Delimiters Replacer Plus](https://github.com/athulkrishna2015/Math-Delimiters-Replacer-Plus)
 [Install via ankiweb](https://ankiweb.net/shared/info/699086701)
 
-This add-on converts MathJax delimiters while editing notes and when batch-updating selected cards in the Browser, using the same matching logic as the original project it builds on 
+This add-on converts MathJax delimiters while editing notes, batch-updating selected notes in the Browser, and updating the current note from the Reviewer More menu, using the same matching logic as the original project it builds on 
 (Supports Bulk update)
 
 ## What it does 
@@ -9,6 +9,7 @@ This add-on converts MathJax delimiters while editing notes and when batch-updat
 - Replace inline math: `$ … $` → `\( … \)` with the same guarantees as above 
 - Adds a toolbar button labelled `\(...\)` in the Editor for one‑click conversion of the current selection  
 - Adds a Browser action named `\(...\)` that processes all fields of all selected notes, with a single undo group for Ctrl+Z  
+- Adds a Reviewer More-menu action named `\(...\)` that converts delimiters in the current review note
 - In Editor selection mode, preserves existing HTML formatting (`<b>`, `<i>`, `<u>`, spans, etc.) and only rewrites delimiter text
 - Skips already rendered MathJax nodes so rendered equations are not modified
 
@@ -20,20 +21,25 @@ This add-on converts MathJax delimiters while editing notes and when batch-updat
 
 ## Usage 
 - Editor: select text containing `$…$` or `$$…$$`, then click the `\(...\)` toolbar button or press the configured shortcut to convert delimiters in place in the active field 
-- Browser: select any cards, open the Edit menu, choose `\(...\)`, and the add‑on will convert delimiters in every field of the selected notes with one undo checkpoint for the whole run 
+- Browser: select any cards, open the Edit menu, choose `\(...\)`, and the add‑on will convert delimiters in every field of the selected notes with one undo entry for the whole run 
+- Reviewer: while reviewing a card, open the **More** menu, choose `\(...\)`, and the add‑on will convert delimiters in the current note and refresh the reviewer view
 
 ## Editor behavior details
 - The editor command rewrites only selected text nodes and does not flatten rich text formatting
 - Existing rendered MathJax (for example `anki-mathjax`/MathJax render containers) is intentionally ignored
+- Editor replacement uses a native editable-command path so `Ctrl+Z` in the card editor restores previous delimiters
 - Scope is delimiter normalization only: `$...$`/`$$...$$` to `\(...\)`/`\[...\]`
 
 ## Keyboard shortcut 
 - The shortcut is read from `config.json` key `"hotkey"` and is applied to both the Editor action and the Browser menu action on startup 
+- Reviewer integration is exposed in the More menu (no dedicated reviewer hotkey)
 - If a plain Alt+letter collides with menu mnemonics on your platform, set `"hotkey"` to a combination like `Shift+Alt+M` in `config.json` and reload add‑ons to take effect 
 
 ## Compatibility 
-- Tested on Anki 25 with Qt 6, with Browser and Editor integrations registered through modern hooks and with fallbacks for older APIs where practical 
-- Undo is implemented with `start_undo/stop_undo` when available and falls back to a checkpoint on older collections to preserve a single-step revert 
+- Tested on Anki 25 with Qt 6, with Browser/Editor integrations registered through modern hooks and with fallbacks for older APIs where practical 
+- Reviewer menu integration uses the `reviewer_will_show_context_menu` hook when available
+- Undo is supported for Browser/Reviewer actions on modern Anki, with compatibility fallbacks on older builds
+- Editor undo for selection replacement is integrated with the editor’s own undo stack (`Ctrl+Z` in the field)
 
 ## Notes on MathJax delimiters 
 - Anki’s manual documents MathJax inline `\(...\)` and display `\[...\]` delimiters, which this add‑on standardizes from `$` and `$$` sources used in some notes 
@@ -47,7 +53,13 @@ This add-on converts MathJax delimiters while editing notes and when batch-updat
 - For usage instructions, updates, and issue reporting, consult the maintained add‑on’s AnkiWeb page under code 401047458 
 - For background, screenshots, and original documentation, refer to the legacy add‑on page under code 211799575
 
+Developer-oriented workflows and versioning commands are documented in `DEVELOPMENT.md`.
+
 ## Changelog
+- 2026-03-19
+  - Added Reviewer More-menu action to convert delimiters in the current review note
+  - Fixed Browser/Reviewer replacement undo behavior on modern Anki by using custom undo entry merging
+  - Fixed card editor replacement undo so `Ctrl+Z` restores previous delimiters after replace
 - 2026-02-20
   - Added support for full-field replacement: if no text is selected, clicking the button now replaces all math delimiters in the currently focused field.
   - Maintained existing behavior where only the selected text is processed if a selection exists.
