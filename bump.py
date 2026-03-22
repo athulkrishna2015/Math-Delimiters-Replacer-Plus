@@ -1,7 +1,35 @@
 import json
+import re
 from pathlib import Path
 
-from new_version import sync_version, validate_version
+VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+def validate_version(version_string: str) -> str:
+    if not VERSION_RE.fullmatch(version_string):
+        raise ValueError(
+            f"Invalid version '{version_string}'. Expected format: major.minor.patch"
+        )
+    return version_string
+
+
+def sync_version(version_string: str, addon_root: Path) -> None:
+    validate_version(version_string)
+    if not addon_root.is_dir():
+        raise FileNotFoundError(f"Addon directory not found: {addon_root}")
+
+    manifest_path = addon_root / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    manifest["version"] = version_string
+    manifest["human_version"] = version_string
+    with manifest_path.open("w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+        f.write("\n")
+
+    version_path = addon_root / "VERSION"
+    version_path.write_text(f"{version_string}\n", encoding="utf-8")
 
 def increment_patch(version_string: str) -> str:
     try:

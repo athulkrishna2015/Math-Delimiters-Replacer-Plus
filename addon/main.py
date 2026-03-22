@@ -77,6 +77,49 @@ def replaceMathDelimiters(editor: Editor):
     return { start, end };
   }
 
+  function asElement(node) {
+    if (!node) return null;
+    return node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  }
+
+  function getEditableFieldFromRange(range) {
+    const element = asElement(range.commonAncestorContainer);
+    if (!element || !element.closest) return null;
+    return element.closest('[contenteditable="true"]');
+  }
+
+  function rangeEqualsFieldContents(range, field) {
+    if (!field) return false;
+    try {
+      const full = document.createRange();
+      full.selectNodeContents(field);
+      return (
+        range.compareBoundaryPoints(Range.START_TO_START, full) === 0 &&
+        range.compareBoundaryPoints(Range.END_TO_END, full) === 0
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function normalizeForCoverage(text) {
+    return (text || "").replace(/[\s\u00A0\u200B]+/g, "");
+  }
+
+  function rangeCoversFieldText(range, field) {
+    if (!field) return false;
+    try {
+      const selected = normalizeForCoverage(range.toString());
+      const full = normalizeForCoverage(field.textContent || "");
+      if (full === "") {
+        return selected === "";
+      }
+      return selected === full;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function rewriteRangeViaInsertHTML(sel, range) {
     let fragment;
     try {
@@ -173,26 +216,37 @@ def replaceMathDelimiters(editor: Editor):
   if (!sel || sel.rangeCount === 0) return;
 
   let range = sel.getRangeAt(0);
+  let targetField = null;
+  let wholeFieldMode = false;
   if (range.collapsed) {
-    const node = range.startContainer;
-    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    const field = element && element.closest ? element.closest('[contenteditable="true"]') : null;
+    const field = getEditableFieldFromRange(range);
     if (field) {
       range = document.createRange();
       range.selectNodeContents(field);
+      targetField = field;
+      wholeFieldMode = true;
     } else {
       return;
     }
+  } else {
+    targetField = getEditableFieldFromRange(range);
+    wholeFieldMode =
+      rangeEqualsFieldContents(range, targetField) ||
+      rangeCoversFieldText(range, targetField);
   }
 
-  const viaInsertHtml = rewriteRangeViaInsertHTML(sel, range);
   let changed = false;
-  if (viaInsertHtml === true) {
-    changed = true;
-  } else if (viaInsertHtml === false) {
-    return;
-  } else {
+  if (wholeFieldMode) {
     changed = rewriteSelectionInPlace(range);
+  } else {
+    const viaInsertHtml = rewriteRangeViaInsertHTML(sel, range);
+    if (viaInsertHtml === true) {
+      changed = true;
+    } else if (viaInsertHtml === false) {
+      return;
+    } else {
+      changed = rewriteSelectionInPlace(range);
+    }
   }
   if (!changed) return;
 
@@ -202,7 +256,8 @@ def replaceMathDelimiters(editor: Editor):
         (document.activeElement.shadowRoot || document.activeElement)) ||
       document;
     const target =
-      editable.querySelector && editable.querySelector('[contenteditable="true"]');
+      targetField ||
+      (editable.querySelector && editable.querySelector('[contenteditable="true"]'));
     if (target) {
       target.dispatchEvent(new InputEvent("input", { bubbles: true }));
     }

@@ -9,9 +9,8 @@ This repository contains the source for the **Math Delimiters Replacer Plus** An
   - `config_dialog.py`: Add-on configuration window.
   - `manifest.json`: Add-on metadata.
   - `VERSION`: Local development version file (semantic version string).
-- `new_version.py`: Syncs version across `manifest.json` and `addon/VERSION`.
-- `bump.py`: Increments patch version (`x.y.z` -> `x.y.(z+1)`).
-- `make_ankiaddon.py`: Auto-bumps patch version and creates `.ankiaddon`.
+- `bump.py`: Version helpers (`validate_version`, `sync_version`) and patch bump (`x.y.z` -> `x.y.(z+1)`).
+- `make_ankiaddon.py`: Creates `.ankiaddon`; auto-bumps patch only when no explicit version is provided.
 - `tests/`: Automated tests (versioning workflow and helpers).
 
 ## Features Wired Into Anki
@@ -38,19 +37,15 @@ Examples: `1.0.0`, `1.2.7`, `2.0.0`.
 
 Behavior:
 
-- `new_version.py` validates semantic version format and writes:
+- `bump.py` validates semantic version format and syncs:
   - `manifest.json` keys: `version`, `human_version`
   - `addon/VERSION`
-- `bump.py` reads current version and increments patch.
-- `make_ankiaddon.py` auto-runs patch bump before packaging.
+- `bump.py` can read current version and increment patch.
+- `make_ankiaddon.py` behavior:
+  - Without args: auto-bumps patch via `bump.py`, then packages.
+  - With `<major.minor.patch>` arg: writes that version via `bump.py` sync helpers, then packages without bumping.
 
 ## Common Commands
-
-Set an explicit version:
-
-```shell
-python new_version.py 1.3.0 addon
-```
 
 Bump patch version:
 
@@ -62,6 +57,12 @@ Build `.ankiaddon` locally:
 
 ```shell
 python make_ankiaddon.py
+```
+
+Build `.ankiaddon` with explicit version (no auto-bump):
+
+```shell
+python make_ankiaddon.py 1.5.0
 ```
 
 Output naming format:

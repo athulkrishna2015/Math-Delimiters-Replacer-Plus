@@ -10,7 +10,7 @@ This add-on converts MathJax delimiters while editing notes, batch-updating sele
 - Adds a toolbar button labelled `\(...\)` in the Editor for one‑click conversion of the current selection  
 - Adds a Browser action named `\(...\)` that processes all fields of all selected notes, with a single undo group for Ctrl+Z  
 - Adds a Reviewer More-menu action named `\(...\)` that converts delimiters in the current review note
-- In Editor selection mode, preserves existing HTML formatting (`<b>`, `<i>`, `<u>`, spans, etc.) and only rewrites delimiter text
+- In Editor selection and full-field modes, preserves existing HTML formatting (`<b>`, `<i>`, `<u>`, spans, etc.) and only rewrites delimiter text
 - Skips already rendered MathJax nodes so rendered equations are not modified
 
 ![giphy](https://github.com/user-attachments/assets/68712ef8-ad94-4503-b8d2-8f6c384fbcb8)
@@ -25,7 +25,9 @@ This add-on converts MathJax delimiters while editing notes, batch-updating sele
 - Reviewer: while reviewing a card, open the **More** menu, choose `\(...\)`, and the add‑on will convert delimiters in the current note and refresh the reviewer view
 
 ## Editor behavior details
-- The editor command rewrites only selected text nodes and does not flatten rich text formatting
+- The editor command rewrites affected text nodes in place (selection or full field) and does not flatten rich text formatting
+- Full-field mode includes both "no selection, cursor in field" and "select all inside a single field" workflows
+- Full-field replacement no longer propagates first-line formatting (for example bold or font size) to remaining lines
 - Existing rendered MathJax (for example `anki-mathjax`/MathJax render containers) is intentionally ignored
 - Editor replacement uses a native editable-command path so `Ctrl+Z` in the card editor restores previous delimiters
 - Scope is delimiter normalization only: `$...$`/`$$...$$` to `\(...\)`/`\[...\]`
@@ -56,6 +58,12 @@ This add-on converts MathJax delimiters while editing notes, batch-updating sele
 Developer-oriented workflows and versioning commands are documented in `DEVELOPMENT.md`.
 
 ## Changelog
+- 2026-03-22
+  - Fixed editor full-field replacement so multi-line fields keep per-line formatting instead of inheriting first-line style
+  - Updated full-field processing to avoid style bleed while still converting delimiters in place
+  - Fixed full-field detection for "select all in field" (`Ctrl+A`) so it follows the same formatting-safe path
+  - Consolidated version tooling by removing `new_version.py` and moving sync/validation helpers into `bump.py`
+  - Updated build flow so `make_ankiaddon.py <version>` sets explicit version without bumping, while no-arg mode still auto-bumps
 - 2026-03-19
   - Added Reviewer More-menu action to convert delimiters in the current review note
   - Fixed Browser/Reviewer replacement undo behavior on modern Anki by using custom undo entry merging

@@ -1,13 +1,19 @@
 import os
+import argparse
+import sys
 import zipfile
 from datetime import datetime
 from pathlib import Path
 
-from bump import increment_patch, read_current_version
-from new_version import sync_version
+from bump import (
+    bump_version as bump_patch_version,
+    read_current_version,
+    sync_version,
+    validate_version,
+)
 
 # Configuration
-ADDON_NAME = "Review_Hotmouse_Plus_Overview"
+ADDON_NAME = "Math_delimiters_replacer_plus"
 ADDON_DIR = "addon"
 
 def artifact_names(
@@ -20,35 +26,41 @@ def artifact_names(
     base = f"{addon_name}_v{version}_{timestamp}"
     return f"{base}.zip", f"{base}.ankiaddon"
 
-def bump_version():
-    try:
-        addon_path = Path(ADDON_DIR)
-        current_version = read_current_version(addon_path)
-        new_version = increment_patch(current_version)
-        print(f"Bumping version: {current_version} → {new_version}")
-        sync_version(new_version, addon_path)
-    except Exception as e:
-        print(f"Warning: Could not auto-bump version: {e}")
+def bump_version(addon_path: Path | None = None) -> int:
+    target = addon_path or Path(ADDON_DIR)
+    return bump_patch_version(target)
 
-def create_ankiaddon():
-    # Auto-bump version before building
-    bump_version()
-    
+def resolve_build_version(
+    addon_path: Path,
+    explicit_version: str | None = None,
+) -> str:
+    if explicit_version is None:
+        code = bump_version(addon_path)
+        if code != 0:
+            raise RuntimeError("Failed to bump version.")
+        return read_current_version(addon_path)
+
+    version = validate_version(explicit_version)
+    sync_version(version, addon_path)
+    print(f"Using explicit version: {version}")
+    return version
+
+def create_ankiaddon(explicit_version: str | None = None) -> int:
     # Get the project root and addon directory
     root_dir = Path.cwd()
     addon_path = root_dir / ADDON_DIR
-    
+
     if not addon_path.exists():
         print(f"Error: {ADDON_DIR} directory not found.")
-        return
+        return 1
 
     try:
-        current_version = read_current_version(addon_path)
+        build_version = resolve_build_version(addon_path, explicit_version)
     except Exception as e:
-        print(f"Error: Could not determine current version: {e}")
-        return
+        print(f"Error: Could not prepare build version: {e}")
+        return 1
 
-    zip_name, final_name = artifact_names(ADDON_NAME, current_version)
+    zip_name, final_name = artifact_names(ADDON_NAME, build_version)
 
     # Exclusions
     exclude_dirs = ['__pycache__', '.git', '.vscode', '.github', 'tests']
@@ -79,6 +91,25 @@ def create_ankiaddon():
         os.remove(final_name)
     os.rename(zip_name, final_name)
     print(f"Successfully created: {final_name}")
+    return 0
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Create .ankiaddon package. "
+            "If no version is provided, patch version is auto-bumped via bump.py."
+        )
+    )
+    parser.add_argument(
+        "version",
+        nargs="?",
+        help="Optional explicit version (major.minor.patch) to set before packaging.",
+    )
+    return parser.parse_args(argv[1:])
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    return create_ankiaddon(args.version)
 
 if __name__ == "__main__":
-    create_ankiaddon()
+    raise SystemExit(main(sys.argv))
