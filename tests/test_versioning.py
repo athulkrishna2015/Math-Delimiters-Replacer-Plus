@@ -94,6 +94,25 @@ class VersioningTests(unittest.TestCase):
             self.assertEqual(manifest["human_version"], "1.2.4")
             self.assertEqual((addon_dir / "VERSION").read_text(encoding="utf-8").strip(), "1.2.4")
 
+    def test_increment_version_supports_major_minor_patch(self) -> None:
+        self.assertEqual(bump.increment_version("1.2.3", "patch"), "1.2.4")
+        self.assertEqual(bump.increment_version("1.2.3", "minor"), "1.3.0")
+        self.assertEqual(bump.increment_version("1.2.3", "major"), "2.0.0")
+        self.assertEqual(bump.increment_version("1.2.3", "path"), "1.2.4")
+
+    def test_bump_version_supports_minor_and_major(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            addon_dir = Path(tmp) / "addon"
+            addon_dir.mkdir(parents=True, exist_ok=True)
+            _write_manifest(addon_dir / "manifest.json", version="3.4.5")
+            (addon_dir / "VERSION").write_text("3.4.5\n", encoding="utf-8")
+
+            self.assertEqual(bump.bump_version(addon_dir, "minor"), 0)
+            self.assertEqual((addon_dir / "VERSION").read_text(encoding="utf-8").strip(), "3.5.0")
+
+            self.assertEqual(bump.bump_version(addon_dir, "major"), 0)
+            self.assertEqual((addon_dir / "VERSION").read_text(encoding="utf-8").strip(), "4.0.0")
+
     def test_make_ankiaddon_bump_version_uses_semver_patch(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             addon_dir = Path(tmp) / "addon"

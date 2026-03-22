@@ -9,7 +9,7 @@ This repository contains the source for the **Math Delimiters Replacer Plus** An
   - `config_dialog.py`: Add-on configuration window.
   - `manifest.json`: Add-on metadata.
   - `VERSION`: Local development version file (semantic version string).
-- `bump.py`: Version helpers (`validate_version`, `sync_version`) and patch bump (`x.y.z` -> `x.y.(z+1)`).
+- `bump.py`: Version helpers (`validate_version`, `sync_version`) and configurable semantic bumping (`major`/`minor`/`patch`, default `patch`).
 - `make_ankiaddon.py`: Creates `.ankiaddon`; auto-bumps patch only when no explicit version is provided.
 - `tests/`: Automated tests (versioning workflow and helpers).
 
@@ -40,7 +40,10 @@ Behavior:
 - `bump.py` validates semantic version format and syncs:
   - `manifest.json` keys: `version`, `human_version`
   - `addon/VERSION`
-- `bump.py` can read current version and increment patch.
+- `bump.py` can read current version and increment:
+  - `patch`: `x.y.z` -> `x.y.(z+1)` (default)
+  - `minor`: `x.y.z` -> `x.(y+1).0`
+  - `major`: `x.y.z` -> `(x+1).0.0`
 - `make_ankiaddon.py` behavior:
   - Without args: auto-bumps patch via `bump.py`, then packages.
   - With `<major.minor.patch>` arg: writes that version via `bump.py` sync helpers, then packages without bumping.
@@ -51,6 +54,18 @@ Bump patch version:
 
 ```shell
 python bump.py
+```
+
+Bump minor version:
+
+```shell
+python bump.py minor
+```
+
+Bump major version:
+
+```shell
+python bump.py major
 ```
 
 Build `.ankiaddon` locally:

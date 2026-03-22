@@ -1,8 +1,16 @@
 import json
 import re
+import argparse
+import sys
 from pathlib import Path
 
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
+BUMP_PART_ALIASES = {
+    "major": "major",
+    "minor": "minor",
+    "patch": "patch",
+    "path": "patch",  # common typo alias
+}
 
 
 def validate_version(version_string: str) -> str:
@@ -31,14 +39,37 @@ def sync_version(version_string: str, addon_root: Path) -> None:
     version_path = addon_root / "VERSION"
     version_path.write_text(f"{version_string}\n", encoding="utf-8")
 
-def increment_patch(version_string: str) -> str:
+def normalize_bump_part(part: str) -> str:
+    normalized = (part or "").strip().lower()
+    mapped = BUMP_PART_ALIASES.get(normalized)
+    if not mapped:
+        valid = ", ".join(sorted(k for k in BUMP_PART_ALIASES if k != "path"))
+        raise ValueError(f"Invalid bump part '{part}'. Expected one of: {valid}")
+    return mapped
+
+def increment_version(version_string: str, bump_part: str = "patch") -> str:
     try:
         major, minor, patch = map(int, version_string.split("."))
     except ValueError as e:
         raise ValueError(
             f"Invalid version '{version_string}'. Expected major.minor.patch"
         ) from e
-    return f"{major}.{minor}.{patch + 1}"
+
+    part = normalize_bump_part(bump_part)
+    if part == "major":
+        major += 1
+        minor = 0
+        patch = 0
+    elif part == "minor":
+        minor += 1
+        patch = 0
+    else:
+        patch += 1
+
+    return f"{major}.{minor}.{patch}"
+
+def increment_patch(version_string: str) -> str:
+    return increment_version(version_string, "patch")
 
 def read_current_version(addon_dir: Path) -> str:
     version_file = addon_dir / "VERSION"
@@ -61,11 +92,12 @@ def read_current_version(addon_dir: Path) -> str:
         f"Could not determine current version from {version_file} or {manifest_file}"
     )
 
-def bump_version(addon_dir: Path = Path("addon")) -> int:
+def bump_version(addon_dir: Path = Path("addon"), bump_part: str = "patch") -> int:
     try:
+        part = normalize_bump_part(bump_part)
         current_version = read_current_version(addon_dir)
-        new_version = increment_patch(current_version)
-        print(f"Bumping version: {current_version} → {new_version}")
+        new_version = increment_version(current_version, part)
+        print(f"Bumping {part} version: {current_version} → {new_version}")
         sync_version(new_version, addon_dir)
         print(f"Successfully updated manifest.json and VERSION to {new_version}")
         return 0
@@ -73,5 +105,26 @@ def bump_version(addon_dir: Path = Path("addon")) -> int:
         print(f"Failed to bump version: {e}")
         return 1
 
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Bump add-on version (major, minor, patch). Default is patch."
+    )
+    parser.add_argument(
+        "part",
+        nargs="?",
+        default="patch",
+        help="Bump part: major, minor, patch (or 'path' alias).",
+    )
+    parser.add_argument(
+        "--addon-dir",
+        default="addon",
+        help="Path to the addon directory (default: addon).",
+    )
+    return parser.parse_args(argv[1:])
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    return bump_version(Path(args.addon_dir), args.part)
+
 if __name__ == "__main__":
-    raise SystemExit(bump_version())
+    raise SystemExit(main(sys.argv))
