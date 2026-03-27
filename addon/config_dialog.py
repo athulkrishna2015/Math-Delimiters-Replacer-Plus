@@ -4,6 +4,8 @@ from aqt import mw
 from aqt.qt import *
 from aqt.utils import showInfo, tooltip
 import os
+from aqt.utils import qconnect, openLink
+from aqt.webview import AnkiWebView
 
 class ConfigDialog(QDialog):
     def __init__(self, addon_name, parent=None):
@@ -33,6 +35,31 @@ class ConfigDialog(QDialog):
         self.support_tab = QWidget()
         self.support_layout = QVBoxLayout(self.support_tab)
         
+
+        # Ko-fi Widget (Embedded Script)
+        self.support_webview = AnkiWebView(self.support_tab)
+        self.support_webview.setFixedHeight(40)  # Enough for the widget button if not floating, but here it's floating
+        # For a floating widget, we need the script in a page. 
+        # The widget itself is fixed/absolute positioned by the script.
+        kofi_html = f"""
+        <html>
+        <head>
+        <style>
+          body {{ background-color: transparent; margin: 0; padding: 0; overflow: hidden; }}
+        </style>
+        <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
+        <script type='text/javascript'>
+          kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'D1D01W6NQT');
+          kofiwidget2.draw();
+        </script>
+        </head>
+        <body></body>
+        </html>
+        """
+        self.support_webview.setHtml(kofi_html)
+        self.support_layout.addWidget(self.support_webview)
+
+
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_content = QWidget()

@@ -57,6 +57,11 @@ This add-on converts MathJax delimiters while editing notes, batch-updating sele
 
 Developer-oriented workflows and versioning commands are documented in `DEVELOPMENT.md`.
 
+
+If you find this add-on useful, please consider supporting its development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D01W6NQT)
+
 ## Changelog
 - 2026-03-22
   - Fixed editor full-field replacement so multi-line fields keep per-line formatting instead of inheriting first-line style
