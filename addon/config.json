@@ -1,1 +1,4 @@
-{"hotkey": "Alt+Shift+M"}
+{
+  "hotkey": "Alt+Shift+M",
+  "auto_paste_replace": false
+}

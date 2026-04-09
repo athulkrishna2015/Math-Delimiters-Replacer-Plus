@@ -29,6 +29,9 @@ class ConfigDialog(QDialog):
         self.hotkey_input = QLineEdit()
         self.general_layout.addRow("Hotkey:", self.hotkey_input)
         
+        self.auto_replace_cb = QCheckBox("Auto replace Math Delimiters on paste")
+        self.general_layout.addRow("", self.auto_replace_cb)
+        
         self.tabs.addTab(self.general_tab, "General")
         
         # Support Tab
@@ -124,10 +127,12 @@ class ConfigDialog(QDialog):
     def load_config(self):
         conf = mw.addonManager.getConfig(self.addon_name)
         self.hotkey_input.setText(conf.get("hotkey", ""))
+        self.auto_replace_cb.setChecked(conf.get("auto_paste_replace", False))
 
     def save_config(self):
         conf = mw.addonManager.getConfig(self.addon_name)
         conf["hotkey"] = self.hotkey_input.text()
+        conf["auto_paste_replace"] = self.auto_replace_cb.isChecked()
         mw.addonManager.writeConfig(self.addon_name, conf)
 
     def accept(self):

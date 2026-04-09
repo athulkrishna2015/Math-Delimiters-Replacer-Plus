@@ -2,8 +2,8 @@
   "package": "math_delimiters_replacer",
   "name": "Math Delimiters Replacer",
   "description": "An addon to replace math equation delimiters",
-  "version": "1.5.2",
-  "human_version": "1.5.2",
+  "version": "1.6.0",
+  "human_version": "1.6.0",
   "modules": [
     {
       "name": "math_delimiters_replacer",

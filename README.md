@@ -10,6 +10,7 @@ This add-on converts MathJax delimiters while editing notes, batch-updating sele
 - Adds a toolbar button labelled `\(...\)` in the Editor for one‑click conversion of the current selection  
 - Adds a Browser action named `\(...\)` that processes all fields of all selected notes, with a single undo group for Ctrl+Z  
 - Adds a Reviewer More-menu action named `\(...\)` that converts delimiters in the current review note
+- Adds an option in the add-on config to automatically convert delimiters upon pasting text into the editor (disabled by default)
 - In Editor selection and full-field modes, preserves existing HTML formatting (`<b>`, `<i>`, `<u>`, spans, etc.) and only rewrites delimiter text
 - Skips already rendered MathJax nodes so rendered equations are not modified
 
@@ -63,6 +64,8 @@ If you find this add-on useful, please consider supporting its development:
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D01W6NQT)
 
 ## Changelog
+- 2026-04-09
+  - Added an option in config to auto-replace math delimiters upon paste (disabled by default)
 - 2026-03-22
   - Fixed editor full-field replacement so multi-line fields keep per-line formatting instead of inheriting first-line style
   - Updated full-field processing to avoid style bleed while still converting delimiters in place

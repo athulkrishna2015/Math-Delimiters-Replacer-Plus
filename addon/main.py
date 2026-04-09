@@ -469,9 +469,17 @@ def _add_reviewer_action(reviewer, menu):
     act.triggered.connect(lambda _checked=False, r=reviewer: replace_in_reviewer(r))
     menu.addAction(act)
 
+def _on_editor_did_paste(editor, html: str, internal: bool, extended: bool):
+    conf = mw.addonManager.getConfig(__name__.split(".")[0])
+    if conf and conf.get("auto_paste_replace", False):
+        # We need a small timer to allow Anki to finish inserting the pasted HTML into the webview before we replace it
+        editor.mw.progress.timer(10, lambda: replaceMathDelimiters(editor), False)
+
 if HAS_GUI_HOOKS:
     gui_hooks.browser_menus_did_init.append(_add_browser_action)
     if hasattr(gui_hooks, "reviewer_will_show_context_menu"):
         gui_hooks.reviewer_will_show_context_menu.append(_add_reviewer_action)
+    if hasattr(gui_hooks, "editor_did_paste"):
+        gui_hooks.editor_did_paste.append(_on_editor_did_paste)
 else:
     addHook("browser.setupMenus", _add_browser_action)
