@@ -24,6 +24,7 @@ This add-on converts MathJax delimiters while editing notes, batch-updating sele
 - Editor: select text containing `$…$` or `$$…$$`, then click the `\(...\)` toolbar button or press the configured shortcut to convert delimiters in place in the active field 
 - Browser: select any cards, open the Edit menu, choose `\(...\)`, and the add‑on will convert delimiters in every field of the selected notes with one undo entry for the whole run 
 - Reviewer: while reviewing a card, open the **More** menu, choose `\(...\)`, and the add‑on will convert delimiters in the current note and refresh the reviewer view
+<img width="726" height="1011" alt="Screenshot_20260409_201516" src="https://github.com/user-attachments/assets/94dd50c2-b9c0-489e-b3d8-c48566d340cd" />
 
 ## Editor behavior details
 - The editor command rewrites affected text nodes in place (selection or full field) and does not flatten rich text formatting
